@@ -1,70 +1,57 @@
-# app/services/chat_service.py
-
 from app.schemas.chat_schema import ChatRequest, ChatResponse
+from app.schemas.agent_schema import AgentRunRequest
+from app.services.agent_service import AgentService
 
 
 class ChatService:
     """
-    ChatService contains the business logic for chat-related operations.
+    ChatService handles user-facing chat requests.
 
-    API layer responsibility:
-        - Accept HTTP request
-        - Validate request using Pydantic
-        - Call this service
-        - Return response
+    Instead of directly returning a dummy response, it now delegates
+    the request to AgentService.
 
-    Service layer responsibility:
-        - Decide how to process the chat request
-        - Later call LangGraph agent
-        - Later store conversation history
-        - Later handle memory, cache, and tracing
+    This means /chat and /agents/run can both use the same LangGraph workflow.
     """
+
+    def __init__(self):
+        self.agent_service = AgentService()
 
     def process_chat(self, request: ChatRequest) -> ChatResponse:
         """
-        Processes a normal chat request.
+        Converts a chat request into an agent run request.
 
-        Right now:
-            - Returns a dummy response.
-
-        Later:
-            - Call master supervisor LangGraph
-            - Retrieve conversation memory
-            - Save response to DB
-            - Return answer with citations
+        Flow:
+            ChatRequest
+                ↓
+            AgentRunRequest
+                ↓
+            AgentService.run_agent()
+                ↓
+            LangGraph workflow
+                ↓
+            ChatResponse
         """
 
+        agent_request = AgentRunRequest(
+            question=request.question,
+            agent_type="master_supervisor"
+        )
+
+        agent_response = self.agent_service.run_agent(agent_request)
+
         return ChatResponse(
-            answer=f"Dummy service response for: {request.question}",
+            answer=agent_response.final_answer,
             conversation_id=request.conversation_id,
             sources=[]
         )
 
     def get_chat_history(self, conversation_id: str):
-        """
-        Returns conversation history for a given conversation_id.
-
-        Right now:
-            - Returns empty history.
-
-        Later:
-            - Fetch messages from PostgreSQL or SQLite.
-        """
-
         return {
             "conversation_id": conversation_id,
             "messages": []
         }
 
     def stream_chat(self, request: ChatRequest):
-        """
-        Placeholder for streaming chat response.
-
-        Later:
-            - Stream LLM tokens using Server-Sent Events.
-            - Useful for ChatGPT-like UI.
-        """
-
         return {
             "message": "Streaming will be implemented later",
             "question": request.question
