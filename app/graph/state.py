@@ -4,7 +4,6 @@ from typing import TypedDict, List, Optional
 class AgentState(TypedDict):
     """
     Shared state passed between all LangGraph nodes.
-    Every node reads from it and returns updates to it.
     """
 
     question: str
