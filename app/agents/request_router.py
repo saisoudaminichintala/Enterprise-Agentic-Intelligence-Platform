@@ -1,19 +1,28 @@
 from app.graph.state import AgentState
+from app.services.infrastructure.llm_service import LLMService
+
+llm_service = LLMService()
 
 
 def request_router_node(state: AgentState):
-    question = state["question"].lower()
+    """
+    LLM-powered request router.
 
-    if any(word in question for word in ["document", "pdf", "upload", "rag", "search"]):
-        route = "knowledge"
-    elif any(word in question for word in ["create", "send", "execute", "approve", "workflow"]):
-        route = "execution"
-    elif any(word in question for word in ["analyze", "compare", "decide", "plan", "reason"]):
-        route = "reasoning"
-    else:
+    Router responsibility:
+    - Classify the request
+    - Store route, confidence, and reason in AgentState
+    """
+
+    result = llm_service.classify_route(state["question"])
+
+    route = result.get("route", "general")
+
+    if route not in ["knowledge", "reasoning", "execution", "general"]:
         route = "general"
 
     return {
         "route": route,
-        "agents_used": state["agents_used"] + ["request_router"]
+        "router_confidence": float(result.get("confidence", 0.0)),
+        "router_reason": result.get("reason", ""),
+        "agents_used": state["agents_used"] + ["request_router_llm"]
     }

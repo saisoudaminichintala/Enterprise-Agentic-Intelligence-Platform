@@ -5,6 +5,8 @@ class AgentState(TypedDict):
     question: str
 
     route: Optional[str]
+    router_confidence: float
+    router_reason: str
 
     selected_supervisor: Optional[str]
     execution_strategy: Optional[str]

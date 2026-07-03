@@ -11,6 +11,8 @@ class AgentService:
         initial_state = {
             "question": request.question,
             "route": None,
+            "router_confidence": 0.0,
+            "router_reason": "",
             "selected_supervisor": None,
             "execution_strategy": None,
             "knowledge_strategy": None,
@@ -23,7 +25,7 @@ class AgentService:
             "retrieved_docs": [],
             "final_answer": None,
             "agents_used": []
-        }
+        }   
         
 
         result = self.graph.invoke(initial_state)
