@@ -1,19 +1,25 @@
 from app.graph.state import AgentState
+from app.services.infrastructure.llm_service import LLMService
+
+llm_service = LLMService()
 
 
 def query_rewriter_node(state: AgentState):
     """
-    Rewrites the user's question into a cleaner retrieval query.
+    LLM-powered query rewriting agent.
 
-    Later:
-    - Use an LLM to rewrite vague/long questions.
-    - Expand acronyms.
-    - Add domain-specific search terms.
+    Purpose:
+    - Convert the user question into a better retrieval query.
+    - Improve vector search quality.
+    - Keep retrieval separate from answer generation.
     """
 
-    rewritten_query = state["question"].strip()
+    result = llm_service.rewrite_query(state["question"])
+
+    rewritten_query = result.get("rewritten_query") or state["question"]
 
     return {
         "rewritten_query": rewritten_query,
-        "agents_used": state["agents_used"] + ["query_rewriter_agent"]
+        "query_rewrite_reason": result.get("reason", ""),
+        "agents_used": state["agents_used"] + ["query_rewriter_llm"]
     }

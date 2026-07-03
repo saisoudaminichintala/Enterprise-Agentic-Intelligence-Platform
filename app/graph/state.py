@@ -16,6 +16,7 @@ class AgentState(TypedDict):
     workflow_strategy: Optional[str]
 
     rewritten_query: Optional[str]
+    query_rewrite_reason: str
     cache_hit: bool
     citations: List[str]
 

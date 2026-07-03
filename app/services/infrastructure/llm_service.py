@@ -88,3 +88,41 @@ Return only valid JSON with this exact structure:
                 "confidence": 0.0,
                 "reason": "LLM returned invalid JSON. Falling back to general route."
             }
+        
+    def rewrite_query(self, question: str) -> dict:
+        system_prompt = """
+    You are a query rewriting agent for an enterprise RAG system.
+
+    Your job:
+    - Convert the user's question into a clear retrieval query.
+    - Preserve important domain terms.
+    - Remove conversational filler.
+    - Do not answer the question.
+    - Do not add facts that are not in the question.
+
+    Return only valid JSON with this exact structure:
+    {
+    "rewritten_query": "clean retrieval query",
+    "reason": "short explanation"
+    }
+    """
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question},
+            ],
+            temperature=0.1,
+            response_format={"type": "json_object"},
+        )
+
+        content = response.choices[0].message.content
+
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            return {
+                "rewritten_query": question,
+                "reason": "LLM returned invalid JSON. Falling back to original question."
+            }

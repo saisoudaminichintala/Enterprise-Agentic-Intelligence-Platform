@@ -19,6 +19,7 @@ class AgentService:
             "reasoning_strategy": None,
             "workflow_strategy": None,
             "rewritten_query": None,
+            "query_rewrite_reason": "",
             "cache_hit": False,
             "citations": [],
             "plan": [],

@@ -8,6 +8,7 @@ def response_composer_node(state: AgentState):
         answer = (
             f"Knowledge response for: {state['question']}. "
             f"Rewritten query: {state['rewritten_query']}. "
+            f"Query rewrite reason: {state['query_rewrite_reason']}. "
             f"Cache hit: {state['cache_hit']}. "
             f"Knowledge strategy: {state['knowledge_strategy']}. "
             f"Retrieved docs: {state['retrieved_docs']}. "
