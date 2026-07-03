@@ -13,6 +13,10 @@ class AgentState(TypedDict):
     reasoning_strategy: Optional[str]
     workflow_strategy: Optional[str]
 
+    rewritten_query: Optional[str]
+    cache_hit: bool
+    citations: List[str]
+
     plan: List[str]
     retrieved_docs: List[str]
     final_answer: Optional[str]

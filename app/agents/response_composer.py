@@ -7,9 +7,11 @@ def response_composer_node(state: AgentState):
     if route == "knowledge":
         answer = (
             f"Knowledge response for: {state['question']}. "
-            f"Master strategy: {state['execution_strategy']}. "
+            f"Rewritten query: {state['rewritten_query']}. "
+            f"Cache hit: {state['cache_hit']}. "
             f"Knowledge strategy: {state['knowledge_strategy']}. "
-            f"Retrieved docs: {state['retrieved_docs']}"
+            f"Retrieved docs: {state['retrieved_docs']}. "
+            f"Citations: {state['citations']}"
         )
 
     elif route == "execution":

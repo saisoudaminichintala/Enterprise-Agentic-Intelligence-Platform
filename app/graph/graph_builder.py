@@ -19,6 +19,10 @@ from app.agents.reasoning.critic_agent import critic_node
 from app.agents.execution.execution_supervisor import execution_supervisor_node
 from app.agents.execution.workflow_planner_agent import workflow_planner_node
 from app.agents.execution.human_approval_agent import human_approval_node
+from app.agents.knowledge.query_rewriter_agent import query_rewriter_node
+from app.agents.knowledge.cache_checker_agent import cache_checker_node
+from app.agents.knowledge.document_grader_agent import document_grader_node
+from app.agents.knowledge.citation_agent import citation_node
 
 
 def route_request(state: AgentState):
@@ -41,6 +45,10 @@ def build_agent_graph():
     graph.add_node("knowledge_supervisor", knowledge_supervisor_node)
     graph.add_node("knowledge_planner", knowledge_planner_node)
     graph.add_node("retriever", retriever_node)
+    graph.add_node("query_rewriter", query_rewriter_node)
+    graph.add_node("cache_checker", cache_checker_node)
+    graph.add_node("document_grader", document_grader_node)
+    graph.add_node("citation", citation_node)
 
     graph.add_node("reasoning_supervisor", reasoning_supervisor_node)
     graph.add_node("reasoning_planner", reasoning_planner_node)
@@ -65,10 +73,13 @@ def build_agent_graph():
             "general_responder": "general_responder",
         }
     )
-
     graph.add_edge("knowledge_supervisor", "knowledge_planner")
-    graph.add_edge("knowledge_planner", "retriever")
-    graph.add_edge("retriever", "response_composer")
+    graph.add_edge("knowledge_planner", "query_rewriter")
+    graph.add_edge("query_rewriter", "cache_checker")
+    graph.add_edge("cache_checker", "retriever")
+    graph.add_edge("retriever", "document_grader")
+    graph.add_edge("document_grader", "citation")
+    graph.add_edge("citation", "response_composer")
 
     graph.add_edge("reasoning_supervisor", "reasoning_planner")
     graph.add_edge("reasoning_planner", "critic")
