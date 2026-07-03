@@ -11,11 +11,14 @@ class AgentService:
         initial_state = {
             "question": request.question,
             "route": None,
+            "selected_supervisor": None,
+            "execution_strategy": None,
             "plan": [],
             "retrieved_docs": [],
             "final_answer": None,
             "agents_used": []
         }
+        
 
         result = self.graph.invoke(initial_state)
 

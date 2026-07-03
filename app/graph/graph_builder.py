@@ -1,3 +1,4 @@
+from langgraph import graph
 from langgraph.graph import StateGraph, START, END
 
 from app.graph.state import AgentState
@@ -21,7 +22,12 @@ from app.agents.execution.human_approval_agent import human_approval_node
 
 
 def route_request(state: AgentState):
-    return state["route"]
+    """
+    Routes based on the Master Supervisor's selected supervisor,
+    not directly from the Request Router.
+    """
+
+    return state["selected_supervisor"]
 
 
 def build_agent_graph():
@@ -53,10 +59,10 @@ def build_agent_graph():
         "master_supervisor",
         route_request,
         {
-            "knowledge": "knowledge_supervisor",
-            "reasoning": "reasoning_supervisor",
-            "execution": "execution_supervisor",
-            "general": "general_responder",
+            "knowledge_supervisor": "knowledge_supervisor",
+            "reasoning_supervisor": "reasoning_supervisor",
+            "execution_supervisor": "execution_supervisor",
+            "general_responder": "general_responder",
         }
     )
 

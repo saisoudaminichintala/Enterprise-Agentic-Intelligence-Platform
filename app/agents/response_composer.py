@@ -3,22 +3,29 @@ from app.graph.state import AgentState
 
 def response_composer_node(state: AgentState):
     route = state["route"]
+    strategy = state["execution_strategy"]
 
     if route == "knowledge":
         answer = (
-            f"Knowledge route response for: {state['question']}. "
+            f"Knowledge response for: {state['question']}. "
+            f"Strategy used: {strategy}. "
             f"Retrieved docs: {state['retrieved_docs']}"
         )
+
     elif route == "execution":
         answer = (
-            f"Execution route response for: {state['question']}. "
+            f"Execution response for: {state['question']}. "
+            f"Strategy used: {strategy}. "
             f"Workflow plan: {state['plan']}"
         )
+
     elif route == "reasoning":
         answer = (
-            f"Reasoning route response for: {state['question']}. "
-            f"Plan: {state['plan']}"
+            f"Reasoning response for: {state['question']}. "
+            f"Strategy used: {strategy}. "
+            f"Reasoning plan: {state['plan']}"
         )
+
     else:
         answer = state["final_answer"] or f"General response for: {state['question']}"
 
