@@ -3,19 +3,22 @@ from app.graph.state import AgentState
 
 def citation_node(state: AgentState):
     """
-    Prepares citation/source metadata for final response.
+    Prepares citation/source metadata for the final response.
 
-    Later:
-    - Include document name
-    - Page number
-    - Chunk id
-    - Confidence score
+    If cache hit:
+        citations come from cached response metadata.
+
+    If cache miss:
+        citations come from retrieved documents.
     """
 
-    citations = [
-        f"source-{index + 1}"
-        for index, _ in enumerate(state["retrieved_docs"])
-    ]
+    if state["cache_hit"]:
+        citations = ["cached-answer-source"]
+    else:
+        citations = [
+            f"source-{index + 1}"
+            for index, _ in enumerate(state["retrieved_docs"])
+        ]
 
     return {
         "citations": citations,
