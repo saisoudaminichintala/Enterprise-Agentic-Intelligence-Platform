@@ -1,6 +1,6 @@
 from fastapi import APIRouter, UploadFile, File
 from app.schemas.document_schema import DocumentResponse, DocumentIndexRequest
-from app.services.document_service import DocumentService
+from app.services.business.document_service import DocumentService
 
 router = APIRouter()
 document_service = DocumentService()

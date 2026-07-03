@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.schemas.workflow_schema import WorkflowRequest, WorkflowApprovalRequest
-from app.services.workflow_service import WorkflowService
+from app.services.business.workflow_service import WorkflowService
 
 router = APIRouter()
 workflow_service = WorkflowService()

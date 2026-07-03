@@ -1,6 +1,6 @@
 from app.schemas.chat_schema import ChatRequest, ChatResponse
 from app.schemas.agent_schema import AgentRunRequest
-from app.services.agent_service import AgentService
+from app.services.business.agent_service import AgentService
 
 
 class ChatService:

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.services.health_service import HealthService
+from app.services.business.health_service import HealthService
 
 router = APIRouter()
 health_service = HealthService()

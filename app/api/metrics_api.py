@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.services.metrics_service import MetricsService
+from app.services.business.metrics_service import MetricsService
 
 router = APIRouter()
 metrics_service = MetricsService()

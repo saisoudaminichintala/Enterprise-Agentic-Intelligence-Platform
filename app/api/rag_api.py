@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter
 from app.schemas.rag_schema import RagRetrieveRequest, RagRetrieveResponse
-from app.services.rag_service import RagService
+from app.services.business.rag_service import RagService
 
 router = APIRouter()
 
