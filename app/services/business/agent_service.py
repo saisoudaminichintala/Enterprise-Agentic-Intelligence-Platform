@@ -24,6 +24,7 @@ class AgentService:
             "citations": [],
             "plan": [],
             "retrieved_docs": [],
+            "document_grade_reason": "",
             "final_answer": None,
             "agents_used": []
         }   

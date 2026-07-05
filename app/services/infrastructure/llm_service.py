@@ -88,7 +88,6 @@ Return only valid JSON with this exact structure:
                 "confidence": 0.0,
                 "reason": "LLM returned invalid JSON. Falling back to general route."
             }
-        
     def rewrite_query(self, question: str) -> dict:
         system_prompt = """
     You are a query rewriting agent for an enterprise RAG system.
@@ -126,3 +125,44 @@ Return only valid JSON with this exact structure:
                 "rewritten_query": question,
                 "reason": "LLM returned invalid JSON. Falling back to original question."
             }
+    def grade_documents(self, question: str, documents: list[str]) -> dict:
+            system_prompt = """
+    You are a document grading agent for an enterprise RAG system.
+
+    Your job:
+    - Review retrieved document chunks.
+    - Keep only chunks that are relevant to the user's question.
+    - Remove irrelevant or low-value chunks.
+    - Do not answer the question.
+
+    Return only valid JSON with this exact structure:
+    {
+    "relevant_documents": ["doc chunk 1", "doc chunk 2"],
+    "reason": "short explanation"
+    }
+    """
+
+            user_prompt = {
+                "question": question,
+                "documents": documents
+            }
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": json.dumps(user_prompt)},
+                ],
+                temperature=0.1,
+                response_format={"type": "json_object"},
+            )
+
+            content = response.choices[0].message.content
+
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError:
+                return {
+                    "relevant_documents": documents,
+                    "reason": "LLM returned invalid JSON. Falling back to all documents."
+                }

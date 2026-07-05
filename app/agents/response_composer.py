@@ -12,6 +12,7 @@ def response_composer_node(state: AgentState):
             f"Cache hit: {state['cache_hit']}. "
             f"Knowledge strategy: {state['knowledge_strategy']}. "
             f"Retrieved docs: {state['retrieved_docs']}. "
+            f"Document grade reason: {state['document_grade_reason']}. "
             f"Citations: {state['citations']}"
         )
 

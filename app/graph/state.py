@@ -22,5 +22,6 @@ class AgentState(TypedDict):
 
     plan: List[str]
     retrieved_docs: List[str]
+    document_grade_reason: str
     final_answer: Optional[str]
     agents_used: List[str]

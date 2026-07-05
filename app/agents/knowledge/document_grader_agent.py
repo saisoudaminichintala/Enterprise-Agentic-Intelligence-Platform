@@ -1,20 +1,17 @@
 from app.graph.state import AgentState
+from app.services.infrastructure.llm_service import LLMService
+
+llm_service = LLMService()
 
 
 def document_grader_node(state: AgentState):
-    """
-    Grades retrieved documents for relevance.
-
-    Later:
-    - Use an LLM or reranker to remove irrelevant chunks.
-    """
-
-    graded_docs = [
-        doc for doc in state["retrieved_docs"]
-        if doc is not None and len(doc.strip()) > 0
-    ]
+    result = llm_service.grade_documents(
+        question=state["question"],
+        documents=state["retrieved_docs"]
+    )
 
     return {
-        "retrieved_docs": graded_docs,
-        "agents_used": state["agents_used"] + ["document_grader_agent"]
+        "retrieved_docs": result.get("relevant_documents", state["retrieved_docs"]),
+        "document_grade_reason": result.get("reason", ""),
+        "agents_used": state["agents_used"] + ["document_grader_llm"]
     }
