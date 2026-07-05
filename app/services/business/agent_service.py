@@ -26,7 +26,8 @@ class AgentService:
             "retrieved_docs": [],
             "document_grade_reason": "",
             "final_answer": None,
-            "agents_used": []
+            "agents_used": [],
+            "knowledge_execution_plan": {}
         }   
         
 

@@ -33,23 +33,55 @@ def route_from_master_supervisor(state: AgentState):
 
     return state["selected_supervisor"]
 
+def route_after_knowledge_supervisor(state: AgentState):
+    plan = state["knowledge_execution_plan"]
+
+    if plan.get("rewrite_query", True):
+        return "rewrite_query"
+
+    if plan.get("check_cache", True):
+        return "check_cache"
+
+    if plan.get("use_vector_search", True):
+        return "retrieve"
+
+    return "citation"
+
+
+def route_after_query_rewriter(state: AgentState):
+    plan = state["knowledge_execution_plan"]
+
+    if plan.get("check_cache", True):
+        return "check_cache"
+
+    if plan.get("use_vector_search", True):
+        return "retrieve"
+
+    return "citation"
+
 
 def route_after_cache_check(state: AgentState):
-    """
-    After cache checking, decide whether to skip retrieval.
-
-    If cache_hit is True:
-        cache_checker -> citation
-
-    If cache_hit is False:
-        cache_checker -> retriever
-    """
+    plan = state["knowledge_execution_plan"]
 
     if state["cache_hit"]:
         return "cache_hit"
 
-    return "cache_miss"
+    if plan.get("use_vector_search", True):
+        return "cache_miss_retrieve"
 
+    return "cache_miss_no_retrieve"
+
+
+def route_after_retriever(state: AgentState):
+    plan = state["knowledge_execution_plan"]
+
+    if plan.get("grade_documents", True):
+        return "grade_documents"
+
+    if plan.get("generate_citations", True):
+        return "citation"
+
+    return "response"
 
 def build_agent_graph():
     """
@@ -175,13 +207,14 @@ def build_agent_graph():
     graph.add_edge("query_rewriter", "cache_checker")
 
     graph.add_conditional_edges(
-        "cache_checker",
-        route_after_cache_check,
-        {
-            "cache_hit": "citation",
-            "cache_miss": "retriever",
-        },
-    )
+    "cache_checker",
+      route_after_cache_check,
+      {
+          "cache_hit": "citation",
+          "cache_miss_retrieve": "retriever",
+          "cache_miss_no_retrieve": "citation",
+      },
+)
 
     graph.add_edge("retriever", "document_grader")
     graph.add_edge("document_grader", "citation")

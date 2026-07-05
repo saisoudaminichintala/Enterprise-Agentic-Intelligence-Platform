@@ -166,3 +166,59 @@ Return only valid JSON with this exact structure:
                     "relevant_documents": documents,
                     "reason": "LLM returned invalid JSON. Falling back to all documents."
                 }
+
+    def create_knowledge_execution_plan(self, question: str) -> dict:
+        system_prompt = """
+    You are a Knowledge Supervisor for an enterprise multi-agent RAG platform.
+
+    Your job is to create an execution plan for answering knowledge-related questions.
+
+    Return only valid JSON with this exact structure:
+    {
+    "knowledge_strategy": "document_rag | semantic_search | hybrid_search | general_knowledge",
+    "rewrite_query": true,
+    "check_cache": true,
+    "use_vector_search": true,
+    "use_web_search": false,
+    "grade_documents": true,
+    "generate_citations": true,
+    "confidence": 0.0,
+    "reason": "short explanation"
+    }
+
+    Rules:
+    - Use document_rag when the user asks about uploaded PDFs/documents/files.
+    - Use semantic_search when the user asks to search internal knowledge.
+    - Use hybrid_search when both internal documents and external/latest knowledge may be useful.
+    - Use general_knowledge for simple knowledge questions that do not need retrieval.
+    - Set use_web_search true only if latest/current/external information is needed.
+    - Set generate_citations true when using documents or search.
+    - Do not answer the user question.
+    """
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question},
+            ],
+            temperature=0.1,
+            response_format={"type": "json_object"},
+        )
+
+        content = response.choices[0].message.content
+
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            return {
+                "knowledge_strategy": "document_rag",
+                "rewrite_query": True,
+                "check_cache": True,
+                "use_vector_search": True,
+                "use_web_search": False,
+                "grade_documents": True,
+                "generate_citations": True,
+                "confidence": 0.0,
+                "reason": "Invalid JSON from LLM. Falling back to default document RAG plan."
+            }

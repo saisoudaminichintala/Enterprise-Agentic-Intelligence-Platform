@@ -1,4 +1,4 @@
-from typing import TypedDict, List, Optional
+from typing import TypedDict, List, Optional, Dict, Any
 
 
 class AgentState(TypedDict):
@@ -15,13 +15,17 @@ class AgentState(TypedDict):
     reasoning_strategy: Optional[str]
     workflow_strategy: Optional[str]
 
+    knowledge_execution_plan: Dict[str, Any]
+
     rewritten_query: Optional[str]
     query_rewrite_reason: str
+
     cache_hit: bool
     citations: List[str]
 
+    document_grade_reason: str
+
     plan: List[str]
     retrieved_docs: List[str]
-    document_grade_reason: str
     final_answer: Optional[str]
     agents_used: List[str]

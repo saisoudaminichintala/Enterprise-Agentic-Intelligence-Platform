@@ -1,17 +1,24 @@
 from app.graph.state import AgentState
+from app.schemas.knowledge_schema import KnowledgeExecutionPlan
+from app.services.infrastructure.llm_service import LLMService
+
+llm_service = LLMService()
 
 
 def knowledge_supervisor_node(state: AgentState):
-    question = state["question"].lower()
+    """
+    LLM-powered Knowledge Supervisor.
 
-    if any(word in question for word in ["pdf", "document", "uploaded"]):
-        strategy = "document_rag"
-    elif "search" in question:
-        strategy = "semantic_search"
-    else:
-        strategy = "general_knowledge_retrieval"
+    It does not retrieve documents itself.
+    It creates a structured execution plan that downstream nodes follow.
+    """
+
+    raw_plan = llm_service.create_knowledge_execution_plan(state["question"])
+
+    plan = KnowledgeExecutionPlan(**raw_plan)
 
     return {
-        "knowledge_strategy": strategy,
-        "agents_used": state["agents_used"] + ["knowledge_supervisor"]
+        "knowledge_strategy": plan.knowledge_strategy,
+        "knowledge_execution_plan": plan.model_dump(),
+        "agents_used": state["agents_used"] + ["knowledge_supervisor_llm"]
     }
