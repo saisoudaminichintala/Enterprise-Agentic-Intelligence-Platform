@@ -222,3 +222,54 @@ Return only valid JSON with this exact structure:
                 "confidence": 0.0,
                 "reason": "Invalid JSON from LLM. Falling back to default document RAG plan."
             }
+        
+    def compose_knowledge_answer(
+    self,
+    question: str,
+    retrieved_docs: list[str],
+    citations: list[str],
+) -> dict:
+        system_prompt = """
+    You are a response composer for an enterprise RAG system.
+
+    Your job:
+    - Answer the user's question using the retrieved documents.
+    - Be concise and clear.
+    - Do not invent facts.
+    - If retrieved documents are weak or empty, say that available context is limited.
+    - Include citations from the provided citation list.
+
+    Return only valid JSON with this exact structure:
+    {
+    "answer": "final user-facing answer",
+    "confidence": 0.0,
+    "reason": "short explanation"
+    }
+    """
+
+        user_prompt = {
+            "question": question,
+            "retrieved_docs": retrieved_docs,
+            "citations": citations,
+        }
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": json.dumps(user_prompt)},
+            ],
+            temperature=0.2,
+            response_format={"type": "json_object"},
+        )
+
+        content = response.choices[0].message.content
+
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            return {
+                "answer": "I could not generate a reliable final answer from the retrieved context.",
+                "confidence": 0.0,
+                "reason": "LLM returned invalid JSON."
+            }
