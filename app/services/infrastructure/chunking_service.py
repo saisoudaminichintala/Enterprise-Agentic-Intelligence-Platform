@@ -1,13 +1,20 @@
 class ChunkingService:
-    """
-    Splits document text into smaller chunks.
+    def chunk_text(self, text: str, chunk_size: int = 800, overlap: int = 100):
+        chunks = []
 
-    Why?
-    - LLMs and vector DBs work better with chunks than full documents.
-    """
+        start = 0
+        chunk_id = 1
 
-    def chunk_text(self, text: str, chunk_size: int = 500):
-        return [
-            text[i:i + chunk_size]
-            for i in range(0, len(text), chunk_size)
-        ]
+        while start < len(text):
+            end = start + chunk_size
+            chunk_text = text[start:end]
+
+            chunks.append({
+                "chunk_id": f"chunk-{chunk_id}",
+                "content": chunk_text
+            })
+
+            chunk_id += 1
+            start = end - overlap
+
+        return chunks

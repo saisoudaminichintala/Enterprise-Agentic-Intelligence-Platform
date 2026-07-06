@@ -1,16 +1,4 @@
 class VectorStoreService:
-    """
-    Stores and searches embeddings.
-
-    Right now:
-    - uses in-memory list.
-
-    Later:
-    - FAISS
-    - Chroma
-    - Pinecone
-    """
-
     def __init__(self):
         self.index = []
 

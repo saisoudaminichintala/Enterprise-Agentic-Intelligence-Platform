@@ -6,3 +6,5 @@ langgraph
 langchain
 groq
 python-dotenv
+pypdf
+python-docx
