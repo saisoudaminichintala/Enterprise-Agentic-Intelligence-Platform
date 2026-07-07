@@ -1,17 +1,17 @@
 from app.graph.state import AgentState
+from app.schemas.execution_schema import ExecutionPlan
+from app.services.infrastructure.llm_service import LLMService
+
+llm_service = LLMService()
 
 
 def execution_supervisor_node(state: AgentState):
-    question = state["question"].lower()
-
-    if any(word in question for word in ["approve", "approval"]):
-        strategy = "human_approval_required"
-    elif any(word in question for word in ["create", "send", "execute"]):
-        strategy = "tool_execution_with_validation"
-    else:
-        strategy = "workflow_planning_only"
+    raw_plan = llm_service.create_execution_plan(state["question"])
+    plan = ExecutionPlan(**raw_plan)
 
     return {
-        "workflow_strategy": strategy,
-        "agents_used": state["agents_used"] + ["execution_supervisor"]
+        "workflow_strategy": plan.workflow_strategy,
+        "execution_plan": plan.model_dump(),
+        "approval_required": plan.requires_approval,
+        "agents_used": state["agents_used"] + ["execution_supervisor_llm"],
     }

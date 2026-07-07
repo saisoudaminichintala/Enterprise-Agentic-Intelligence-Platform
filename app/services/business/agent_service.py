@@ -27,7 +27,16 @@ class AgentService:
             "document_grade_reason": "",
             "final_answer": None,
             "agents_used": [],
-            "knowledge_execution_plan": {}
+            "knowledge_execution_plan": {},
+            "reasoning_execution_plan": {},
+            "reasoning_draft": "",
+            "critic_feedback": "",
+            "reflection_notes": "",
+            "verification_result": "",
+            "execution_plan": {},
+            "approval_required": False,
+            "approval_status": "NOT_REQUIRED",
+            "tool_result": "",
         }   
         
 

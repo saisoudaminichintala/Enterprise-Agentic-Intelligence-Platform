@@ -1,5 +1,7 @@
+from langgraph import graph
 from langgraph.graph import StateGraph, START, END
 
+from app.agents.reasoning.reflection_agent import reflection_node
 from app.graph.state import AgentState
 
 from app.agents.request_router import request_router_node
@@ -22,7 +24,23 @@ from app.agents.reasoning.critic_agent import critic_node
 from app.agents.execution.execution_supervisor import execution_supervisor_node
 from app.agents.execution.workflow_planner_agent import workflow_planner_node
 from app.agents.execution.human_approval_agent import human_approval_node
+from app.graph.state import AgentState
+from app.services.infrastructure.llm_service import LLMService
+from app.agents.execution.tool_executor_agent import tool_executor_node
 
+llm_service = LLMService()
+
+
+def verifier_node(state: AgentState):
+    result = llm_service.verify_reasoning_answer(
+        question=state["question"],
+        answer=state["reasoning_draft"],
+    )
+
+    return {
+        "verification_result": result.get("verification_result", "needs_revision"),
+        "agents_used": state["agents_used"] + ["verifier_agent_llm"],
+    }
 
 def route_from_master_supervisor(state: AgentState):
     """
@@ -171,6 +189,8 @@ def build_agent_graph():
     graph.add_node("reasoning_supervisor", reasoning_supervisor_node)
     graph.add_node("reasoning_planner", reasoning_planner_node)
     graph.add_node("critic", critic_node)
+    graph.add_node("reflection", reflection_node)
+    graph.add_node("verifier", verifier_node)
 
     # -----------------------------
     # Execution route nodes
@@ -178,6 +198,7 @@ def build_agent_graph():
     graph.add_node("execution_supervisor", execution_supervisor_node)
     graph.add_node("workflow_planner", workflow_planner_node)
     graph.add_node("human_approval", human_approval_node)
+    graph.add_node("tool_executor", tool_executor_node)
 
     # -----------------------------
     # Start flow
@@ -225,14 +246,17 @@ def build_agent_graph():
     # -----------------------------
     graph.add_edge("reasoning_supervisor", "reasoning_planner")
     graph.add_edge("reasoning_planner", "critic")
-    graph.add_edge("critic", "response_composer")
+    graph.add_edge("critic", "reflection")
+    graph.add_edge("reflection", "verifier")
+    graph.add_edge("verifier", "response_composer")
 
     # -----------------------------
     # Execution branch
     # -----------------------------
     graph.add_edge("execution_supervisor", "workflow_planner")
     graph.add_edge("workflow_planner", "human_approval")
-    graph.add_edge("human_approval", "response_composer")
+    graph.add_edge("human_approval", "tool_executor")
+    graph.add_edge("tool_executor", "response_composer")
 
     # -----------------------------
     # General branch

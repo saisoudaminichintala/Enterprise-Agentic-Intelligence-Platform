@@ -18,18 +18,15 @@ def response_composer_node(state: AgentState):
 
     elif route == "execution":
         answer = (
-            f"Execution response for: {state['question']}. "
-            f"Master strategy: {state['execution_strategy']}. "
-            f"Workflow strategy: {state['workflow_strategy']}. "
-            f"Workflow plan: {state['plan']}."
+            f"Execution plan: {state['execution_plan']}\n\n"
+            f"Approval status: {state['approval_status']}\n\n"
+            f"Tool result: {state['tool_result']}"
         )
 
     elif route == "reasoning":
         answer = (
-            f"Reasoning response for: {state['question']}. "
-            f"Master strategy: {state['execution_strategy']}. "
-            f"Reasoning strategy: {state['reasoning_strategy']}. "
-            f"Reasoning plan: {state['plan']}."
+            f"{state['reasoning_draft']}\n\n"
+            f"Verification: {state['verification_result']}"
         )
 
     else:

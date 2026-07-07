@@ -29,3 +29,13 @@ class AgentState(TypedDict):
     retrieved_docs: List[str]
     final_answer: Optional[str]
     agents_used: List[str]
+    reasoning_execution_plan: dict
+    reasoning_draft: str
+    critic_feedback: str
+    reflection_notes: str
+    verification_result: str
+
+    execution_plan: dict
+    approval_required: bool
+    approval_status: str
+    tool_result: str

@@ -273,3 +273,185 @@ Return only valid JSON with this exact structure:
                 "confidence": 0.0,
                 "reason": "LLM returned invalid JSON."
             }
+    def create_reasoning_execution_plan(self, question: str) -> dict:
+            system_prompt = """
+        You are a Reasoning Supervisor for an enterprise multi-agent AI platform.
+
+        Create an execution plan for complex reasoning tasks.
+
+        Return only valid JSON:
+        {
+        "reasoning_strategy": "comparative_reasoning | system_design | analytical_reasoning | planning_reasoning",
+        "decompose_problem": true,
+        "critique_answer": true,
+        "reflect_and_improve": true,
+        "verify_final_answer": true,
+        "confidence": 0.0,
+        "reason": "short explanation"
+        }
+        """
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question},
+                ],
+                temperature=0.1,
+                response_format={"type": "json_object"},
+            )
+
+            return json.loads(response.choices[0].message.content)
+
+
+    def create_reasoning_draft(self, question: str) -> dict:
+        system_prompt = """
+    You are a reasoning planner agent.
+
+    Break down the user's problem and create a clear draft answer.
+
+    Return only valid JSON:
+    {
+    "draft": "reasoned draft answer",
+    "reason": "short explanation"
+    }
+    """
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question},
+            ],
+            temperature=0.2,
+            response_format={"type": "json_object"},
+        )
+
+        return json.loads(response.choices[0].message.content)
+
+
+    def critique_reasoning(self, question: str, draft: str) -> dict:
+        system_prompt = """
+    You are a critic agent.
+
+    Review the draft for:
+    - missing assumptions
+    - weak reasoning
+    - unclear tradeoffs
+    - unsupported conclusions
+
+    Return only valid JSON:
+    {
+    "feedback": "critic feedback",
+    "severity": "low | medium | high"
+    }
+    """
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": json.dumps({"question": question, "draft": draft})},
+            ],
+            temperature=0.1,
+            response_format={"type": "json_object"},
+        )
+
+        return json.loads(response.choices[0].message.content)
+
+
+    def reflect_and_improve(self, question: str, draft: str, feedback: str) -> dict:
+        system_prompt = """
+    You are a reflection agent.
+
+    Improve the draft using critic feedback.
+
+    Return only valid JSON:
+    {
+    "improved_answer": "improved final answer",
+    "reflection_notes": "what was improved"
+    }
+    """
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": json.dumps({
+                        "question": question,
+                        "draft": draft,
+                        "feedback": feedback
+                    }),
+                },
+            ],
+            temperature=0.2,
+            response_format={"type": "json_object"},
+        )
+
+        return json.loads(response.choices[0].message.content)
+
+
+    def verify_reasoning_answer(self, question: str, answer: str) -> dict:
+        system_prompt = """
+    You are a verifier agent.
+
+    Check whether the final answer:
+    - addresses the question
+    - is logically consistent
+    - avoids unsupported claims
+    - is clear and useful
+
+    Return only valid JSON:
+    {
+    "verification_result": "pass | needs_revision",
+    "reason": "short explanation"
+    }
+    """
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": json.dumps({"question": question, "answer": answer})},
+            ],
+            temperature=0.1,
+            response_format={"type": "json_object"},
+        )
+
+        return json.loads(response.choices[0].message.content)
+    def create_execution_plan(self, question: str) -> dict:
+        system_prompt = """
+    You are an Execution Supervisor for an enterprise agentic AI platform.
+
+    Create a safe execution plan for workflow/tool requests.
+
+    Return only valid JSON:
+    {
+    "workflow_strategy": "tool_execution | approval_required | planning_only",
+    "tool_needed": "email | jira | database | github | generic_tool | none",
+    "requires_approval": true,
+    "risk_level": "low | medium | high",
+    "execution_steps": ["step 1", "step 2"],
+    "confidence": 0.0,
+    "reason": "short explanation"
+    }
+
+    Rules:
+    - If the request sends, creates, deletes, updates, or changes external systems, approval is required.
+    - If the user only asks for a plan, approval is not required.
+    - Do not actually execute anything.
+    """
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question},
+            ],
+            temperature=0.1,
+            response_format={"type": "json_object"},
+        )
+
+        return json.loads(response.choices[0].message.content)
