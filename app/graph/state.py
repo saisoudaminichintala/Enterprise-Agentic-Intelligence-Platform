@@ -39,3 +39,6 @@ class AgentState(TypedDict):
     approval_required: bool
     approval_status: str
     tool_result: str
+
+    selected_tool: str
+    tool_input: dict

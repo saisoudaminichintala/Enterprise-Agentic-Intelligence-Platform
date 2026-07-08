@@ -27,6 +27,7 @@ from app.agents.execution.human_approval_agent import human_approval_node
 from app.graph.state import AgentState
 from app.services.infrastructure.llm_service import LLMService
 from app.agents.execution.tool_executor_agent import tool_executor_node
+from app.agents.execution.tool_selector_agent import tool_selector_node
 
 llm_service = LLMService()
 
@@ -199,6 +200,7 @@ def build_agent_graph():
     graph.add_node("workflow_planner", workflow_planner_node)
     graph.add_node("human_approval", human_approval_node)
     graph.add_node("tool_executor", tool_executor_node)
+    graph.add_node("tool_selector", tool_selector_node)
 
     # -----------------------------
     # Start flow
@@ -255,7 +257,8 @@ def build_agent_graph():
     # -----------------------------
     graph.add_edge("execution_supervisor", "workflow_planner")
     graph.add_edge("workflow_planner", "human_approval")
-    graph.add_edge("human_approval", "tool_executor")
+    graph.add_edge("human_approval", "tool_selector")
+    graph.add_edge("tool_selector", "tool_executor")
     graph.add_edge("tool_executor", "response_composer")
 
     # -----------------------------

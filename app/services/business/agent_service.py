@@ -37,6 +37,8 @@ class AgentService:
             "approval_required": False,
             "approval_status": "NOT_REQUIRED",
             "tool_result": "",
+            "selected_tool": "",
+            "tool_input": {},
         }   
         
 
