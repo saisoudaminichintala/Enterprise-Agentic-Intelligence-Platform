@@ -6,7 +6,7 @@ from app.services.infrastructure.parser_service import ParserService
 from app.services.infrastructure.chunking_service import ChunkingService
 from app.services.infrastructure.embedding_service import EmbeddingService
 from app.services.infrastructure.vectorstore_service import VectorStoreService
-
+from app.services.infrastructure.retriever_service import RetrieverService
 
 class DocumentService:
     def __init__(self):
@@ -15,7 +15,10 @@ class DocumentService:
         self.chunking_service = ChunkingService()
         self.embedding_service = EmbeddingService()
         self.vectorstore_service = VectorStoreService()
-
+        self.retriever_service = RetrieverService(
+            embedding_service=self.embedding_service,
+            vectorstore_service=self.vectorstore_service
+        )
         self.document_store = {}
 
     async def upload_document(self, file: UploadFile) -> DocumentResponse:

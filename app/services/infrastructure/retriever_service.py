@@ -1,26 +1,24 @@
-class VectorStoreService:
+from app.services.infrastructure.embedding_service import EmbeddingService
+from app.services.infrastructure.vectorstore_service import VectorStoreService
+
+
+class RetrieverService:
     """
-    Stores and searches embeddings.
-
-    Right now:
-    - uses in-memory list.
-
-    Later:
-    - FAISS
-    - Chroma
-    - Pinecone
+    Retrieves relevant document chunks using embeddings + FAISS.
     """
 
-    def __init__(self):
-        self.index = []
+    def __init__(
+        self,
+        embedding_service: EmbeddingService,
+        vectorstore_service: VectorStoreService
+    ):
+        self.embedding_service = embedding_service
+        self.vectorstore_service = vectorstore_service
 
-    def add_documents(self, embedded_chunks):
-        self.index.extend(embedded_chunks)
+    def retrieve(self, query: str, top_k: int = 5):
+        query_vector = self.embedding_service.embed_query(query)
 
-        return {
-            "status": "INDEXED",
-            "chunks_indexed": len(embedded_chunks)
-        }
-
-    def similarity_search(self, query: str, top_k: int = 5):
-        return self.index[:top_k]
+        return self.vectorstore_service.similarity_search_by_vector(
+            query_vector=query_vector,
+            top_k=top_k
+        )
