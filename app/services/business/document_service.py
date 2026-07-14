@@ -1,77 +1,167 @@
+import os
 import uuid
+
 from fastapi import UploadFile
-from app.schemas.document_schema import DocumentResponse, DocumentIndexRequest
-from app.services.infrastructure.storage_service import StorageService
-from app.services.infrastructure.parser_service import ParserService
+
+from app.schemas.document_schema import (
+    DocumentIndexRequest,
+    DocumentResponse,
+)
 from app.services.infrastructure.chunking_service import ChunkingService
 from app.services.infrastructure.embedding_service import EmbeddingService
+from app.services.infrastructure.parser_service import ParserService
+from app.services.infrastructure.storage_service import StorageService
 from app.services.infrastructure.vectorstore_service import VectorStoreService
-from app.services.infrastructure.retriever_service import RetrieverService
+
 
 class DocumentService:
-    def __init__(self):
+    """
+    Orchestrates document upload, indexing, listing, and deletion.
+
+    This is a business service. It coordinates infrastructure services,
+    but does not implement parsing, embedding, or FAISS operations itself.
+    """
+
+    def __init__(
+        self,
+        embedding_service: EmbeddingService,
+        vectorstore_service: VectorStoreService,
+    ):
         self.storage_service = StorageService()
         self.parser_service = ParserService()
         self.chunking_service = ChunkingService()
-        self.embedding_service = EmbeddingService()
-        self.vectorstore_service = VectorStoreService()
-        self.retriever_service = RetrieverService(
-            embedding_service=self.embedding_service,
-            vectorstore_service=self.vectorstore_service
-        )
-        self.document_store = {}
 
-    async def upload_document(self, file: UploadFile) -> DocumentResponse:
+        # Shared dependencies are injected.
+        self.embedding_service = embedding_service
+        self.vectorstore_service = vectorstore_service
+
+        # Temporary in-memory metadata store.
+        self.document_store: dict[str, dict] = {}
+
+    async def upload_document(
+        self,
+        file: UploadFile,
+    ) -> DocumentResponse:
         document_id = str(uuid.uuid4())
+
         file_path = await self.storage_service.save_file(file)
 
         self.document_store[document_id] = {
             "document_id": document_id,
             "filename": file.filename,
             "file_path": file_path,
-            "status": "UPLOADED"
+            "status": "UPLOADED",
         }
 
         return DocumentResponse(
             document_id=document_id,
-            filename=file.filename,
-            status="UPLOADED"
+            filename=file.filename or "unknown",
+            status="UPLOADED",
         )
 
-    def list_documents(self):
+    def list_documents(self) -> dict:
         return {
-            "documents": list(self.document_store.values())
+            "documents": list(self.document_store.values()),
         }
 
-    def index_documents(self, request: DocumentIndexRequest):
-        if request.document_id not in self.document_store:
+    def index_documents(
+        self,
+        request: DocumentIndexRequest,
+    ) -> dict:
+        document_id = request.document_id
+
+        if not document_id:
+            return {
+                "status": "FAILED",
+                "reason": "document_id is required",
+            }
+
+        if document_id not in self.document_store:
             return {
                 "status": "FAILED",
                 "reason": "Document not found",
-                "document_id": request.document_id
+                "document_id": document_id,
             }
 
-        document = self.document_store[request.document_id]
-        parsed_text = self.parser_service.parse_document(document["file_path"])
-        chunks = self.chunking_service.chunk_text(parsed_text)
-        embedded_chunks = self.embedding_service.create_embeddings(chunks)
+        document = self.document_store[document_id]
 
-        result = self.vectorstore_service.add_documents(embedded_chunks)
+        parsed_text = self.parser_service.parse_document(
+            document["file_path"]
+        )
+
+        if not parsed_text.strip():
+            return {
+                "status": "FAILED",
+                "reason": "No text could be extracted from the document",
+                "document_id": document_id,
+            }
+
+        chunks = self.chunking_service.chunk_text(parsed_text)
+
+        # Add document metadata to every chunk.
+        enriched_chunks = [
+            {
+                **chunk,
+                "document_id": document_id,
+                "filename": document["filename"],
+            }
+            for chunk in chunks
+        ]
+
+        embedded_chunks = self.embedding_service.create_embeddings(
+            enriched_chunks
+        )
+        
+        print(
+    "DocumentService vector store ID:",
+    id(self.vectorstore_service),
+)
+
+        print(
+            "FAISS vectors after indexing:",
+            self.vectorstore_service.index.ntotal,
+        )
+
+        print(
+            "Stored metadata count:",
+            len(self.vectorstore_service.documents),
+        )
+
+        result = self.vectorstore_service.add_documents(
+            embedded_chunks
+        )
 
         document["status"] = "INDEXED"
-
-        return {
-            "document_id": request.document_id,
-            "filename": document["filename"],
-            "status": result["status"],
-            "chunks_indexed": result["chunks_indexed"]
-        }
-
-    def delete_document(self, document_id: str):
-        if document_id in self.document_store:
-            del self.document_store[document_id]
+        document["chunks_indexed"] = result["chunks_indexed"]
 
         return {
             "document_id": document_id,
-            "status": "DELETED"
+            "filename": document["filename"],
+            "status": result["status"],
+            "chunks_indexed": result["chunks_indexed"],
+        }
+
+    def delete_document(self, document_id: str) -> dict:
+        document = self.document_store.get(document_id)
+
+        if document is None:
+            return {
+                "document_id": document_id,
+                "status": "NOT_FOUND",
+            }
+
+        file_path = document.get("file_path")
+
+        if file_path and os.path.exists(file_path):
+            os.remove(file_path)
+
+        del self.document_store[document_id]
+
+        # Important limitation:
+        # This does not yet delete the document vectors from FAISS.
+        # We will add vector deletion/rebuilding later.
+
+        return {
+            "document_id": document_id,
+            "status": "DELETED",
         }
