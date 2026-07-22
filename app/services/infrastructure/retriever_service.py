@@ -1,24 +1,28 @@
 # app/services/infrastructure/retriever_service.py
 
-from app.services.infrastructure.embedding_service import EmbeddingService
-from app.services.infrastructure.vectorstore_service import VectorStoreService
+from app.services.infrastructure.embedding_service import (
+    EmbeddingService,
+)
+from app.services.infrastructure.vectorstore_service import (
+    VectorStoreService,
+)
 
 
 class RetrieverService:
     """
-    Performs semantic retrieval using an embedding model and FAISS.
+    Performs semantic retrieval using an embedding model
+    and the configured Qdrant vector store.
 
-    This class does not create or import global dependencies.
-    Its required services are passed through constructor injection.
+    Dependencies are supplied through constructor injection.
 
     Flow:
         query
           ↓
         EmbeddingService
           ↓
-        query vector
+        query embedding
           ↓
-        VectorStoreService
+        QdrantVectorStore
           ↓
         matching document chunks
     """
@@ -27,7 +31,7 @@ class RetrieverService:
         self,
         embedding_service: EmbeddingService,
         vectorstore_service: VectorStoreService,
-    ):
+    ) -> None:
         self.embedding_service = embedding_service
         self.vectorstore_service = vectorstore_service
 
@@ -35,18 +39,45 @@ class RetrieverService:
         self,
         query: str,
         top_k: int = 5,
+        document_id: str | None = None,
+        score_threshold: float | None = None,
     ) -> list[dict]:
         """
-        Converts the query into an embedding and searches the shared
-        FAISS vector index.
+        Convert the query into an embedding and retrieve the
+        most semantically relevant document chunks from Qdrant.
         """
 
-        if not query or not query.strip():
+        normalized_query = query.strip()
+
+        if not normalized_query:
             return []
 
-        query_vector = self.embedding_service.embed_query(query)
+        if top_k <= 0:
+            raise ValueError(
+                "top_k must be greater than zero."
+            )
 
-        return self.vectorstore_service.similarity_search_by_vector(
-            query_vector=query_vector,
-            top_k=top_k,
+        query_embedding = (
+            self.embedding_service.embed_query(
+                normalized_query
+            )
         )
+
+        search_results = self.vectorstore_service.search(
+            query_embedding=query_embedding,
+            limit=top_k,
+            document_id=document_id,
+            score_threshold=score_threshold,
+        )
+
+        return [
+            {
+                "point_id": result.point_id,
+                "document_id": result.document_id,
+                "chunk_id": result.chunk_id,
+                "text": result.text,
+                "score": result.score,
+                "metadata": result.metadata,
+            }
+            for result in search_results
+        ]

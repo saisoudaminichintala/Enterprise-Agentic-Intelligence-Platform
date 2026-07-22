@@ -19,7 +19,7 @@ class DocumentService:
     Orchestrates document upload, indexing, listing, and deletion.
 
     This is a business service. It coordinates infrastructure services,
-    but does not implement parsing, embedding, or FAISS operations itself.
+    but does not implement parsing, embedding, or vector-store operations itself.
     """
 
     def __init__(
@@ -118,13 +118,8 @@ class DocumentService:
 )
 
         print(
-            "FAISS vectors after indexing:",
-            self.vectorstore_service.index.ntotal,
-        )
-
-        print(
-            "Stored metadata count:",
-            len(self.vectorstore_service.documents),
+            "Qdrant collection after indexing:",
+            self.vectorstore_service._vector_store.collection_name,
         )
 
         result = self.vectorstore_service.add_documents(
@@ -158,7 +153,7 @@ class DocumentService:
         del self.document_store[document_id]
 
         # Important limitation:
-        # This does not yet delete the document vectors from FAISS.
+        # This does not yet delete the document vectors from Qdrant.
         # We will add vector deletion/rebuilding later.
 
         return {

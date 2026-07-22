@@ -21,8 +21,8 @@ def retriever_node(
     )
 
     print(
-        "FAISS vectors before retrieval:",
-        shared_vectorstore.index.ntotal,
+        "Qdrant collection before retrieval:",
+        shared_vectorstore.collection_name,
     )
 
     results = retriever_service.retrieve(
@@ -31,14 +31,14 @@ def retriever_node(
     )
 
     print("Retriever query:", query)
-    print("Raw FAISS results:", results)
+    print("Raw Qdrant results:", results)
 
     retrieved_docs = [
         (
             f"Source: {result.get('filename', 'unknown')}\n"
             f"Chunk ID: {result.get('chunk_id', 'unknown')}\n"
             f"Distance: {result.get('score')}\n"
-            f"Content: {result.get('content', '')}"
+            f"Content: {result.get('text', '')}"
         )
         for result in results
     ]
@@ -47,6 +47,6 @@ def retriever_node(
         "retrieved_docs": retrieved_docs,
         "agents_used": (
             state["agents_used"]
-            + ["retriever_agent_faiss"]
+            + ["retriever_agent_qdrant"]
         ),
     }

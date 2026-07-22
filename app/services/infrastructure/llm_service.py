@@ -19,13 +19,17 @@ class LLMService:
     - Add tracing
     """
 
-    def __init__(self):
-        if not settings.GROQ_API_KEY:
-            raise ValueError("GROQ_API_KEY is missing. Set it as an environment variable.")
+    def __init__(self) -> None:
+        if settings.groq_api_key is None:
+            raise ValueError(
+                "GROQ_API_KEY is missing. Set it in the .env file."
+            )
 
-        self.client = Groq(api_key=settings.GROQ_API_KEY)
-        self.model = settings.GROQ_MODEL
-
+        self.client = Groq(
+            api_key=settings.groq_api_key.get_secret_value()
+        )
+        self.model = settings.groq_model
+       
     def classify_route(self, question: str) -> dict:
         system_prompt = """
 You are a request routing agent for an enterprise multi-agent AI platform.

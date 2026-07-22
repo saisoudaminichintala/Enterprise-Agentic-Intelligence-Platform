@@ -23,7 +23,7 @@ class RagService:
 
         Later:
             - Convert query into embedding
-            - Search FAISS/Chroma
+            - Search Qdrant
             - Return top-k matching chunks
         """
 

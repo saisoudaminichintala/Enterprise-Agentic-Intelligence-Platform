@@ -1,3 +1,6 @@
+import uuid
+
+from app.infrastructure.vector_store.vector_models import VectorChunk
 from sentence_transformers import SentenceTransformer
 
 
@@ -9,7 +12,7 @@ class EmbeddingService:
     - document embeddings
     - query embeddings
 
-    Otherwise FAISS similarity search would compare incompatible vectors.
+    Otherwise Qdrant similarity search would compare incompatible vectors.
     """
 
     def __init__(self):
@@ -34,7 +37,7 @@ class EmbeddingService:
     def create_embeddings(
         self,
         chunks: list[dict],
-    ) -> list[dict]:
+    ) -> list[VectorChunk]:
         """
         Generates embeddings for document chunks.
 
@@ -54,20 +57,33 @@ class EmbeddingService:
             convert_to_numpy=True,
         )
 
-        return [
-            {
-                "chunk_id": chunk["chunk_id"],
-                "content": chunk["content"],
-                "document_id": chunk.get("document_id"),
-                "filename": chunk.get("filename"),
-                "embedding": vector,
+        embedded_chunks: list[VectorChunk] = []
+
+        for chunk, vector in zip(chunks, vectors):
+            metadata = {
+                key: value
+                for key, value in chunk.items()
+                if key not in {"chunk_id", "content", "document_id", "filename", "embedding"}
             }
-            for chunk, vector in zip(chunks, vectors)
-        ]
+
+            point_id = str(uuid.uuid4())
+
+            embedded_chunks.append(
+                VectorChunk(
+                    point_id=point_id,
+                    document_id=str(chunk.get("document_id", "")),
+                    chunk_id=str(chunk["chunk_id"]),
+                    text=chunk["content"],
+                    embedding=vector.tolist(),
+                    metadata=metadata,
+                )
+            )
+
+        return embedded_chunks
 
     def embed_query(self, query: str):
         """
-        Converts a user query into a vector for FAISS search.
+        Converts a user query into a vector for Qdrant search.
 
         The query uses the same SentenceTransformer model as the documents.
         """

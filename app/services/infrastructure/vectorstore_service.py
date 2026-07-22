@@ -1,104 +1,137 @@
-import faiss
-import numpy as np
+from app.infrastructure.vector_store.qdrant_vector_store import (
+    QdrantVectorStore,
+)
+from app.infrastructure.vector_store.vector_models import (
+    VectorChunk,
+    VectorSearchResult,
+)
 
 
 class VectorStoreService:
     """
-    Shared in-memory FAISS vector store.
+    Application-facing vector storage service.
 
-    FAISS stores vectors. The documents list stores metadata at the
-    corresponding vector position.
+    This class hides the concrete vector database implementation
+    from the rest of the application.
+
+    Current implementation:
+        QdrantVectorStore -> Qdrant Cloud
+
+    DocumentService and RetrieverService depend on this class,
+    not directly on the Qdrant SDK.
     """
 
-    def __init__(self, dimension: int = 384):
-        self.dimension = dimension
-        self.index = faiss.IndexFlatL2(dimension)
-        self.documents: list[dict] = []
+    def __init__(
+        self,
+        qdrant_vector_store: QdrantVectorStore,
+    ) -> None:
+        self._vector_store = qdrant_vector_store
+
+    def initialize(self) -> None:
+        """
+        Initialize the underlying vector collection.
+        """
+        self._vector_store.initialize()
+
+    @property
+    def collection_name(self) -> str:
+        """
+        Expose the underlying collection name for diagnostics and agents.
+        """
+        return self._vector_store.collection_name
 
     def add_documents(
         self,
-        embedded_chunks: list[dict],
+        chunks: list[VectorChunk],
     ) -> dict:
-        if not embedded_chunks:
-            return {
-                "status": "NO_DOCUMENTS",
-                "chunks_indexed": 0,
-            }
+        """
+        Store document chunks in Qdrant.
 
-        vectors = np.asarray(
-            [item["embedding"] for item in embedded_chunks],
-            dtype=np.float32,
+        This method keeps the older application-facing method name
+        so DocumentService does not need a major rewrite.
+        """
+
+        chunks_indexed = self._vector_store.upsert_chunks(
+            chunks
         )
-
-        if vectors.ndim != 2:
-            raise ValueError(
-                f"Expected a 2D embedding matrix, received {vectors.shape}"
-            )
-
-        if vectors.shape[1] != self.dimension:
-            raise ValueError(
-                "Embedding dimension mismatch: "
-                f"index expects {self.dimension}, "
-                f"received {vectors.shape[1]}"
-            )
-
-        self.index.add(vectors)
-
-        for item in embedded_chunks:
-            self.documents.append(
-                {
-                    "chunk_id": item["chunk_id"],
-                    "content": item["content"],
-                    "document_id": item.get("document_id"),
-                    "filename": item.get("filename"),
-                }
-            )
 
         return {
             "status": "INDEXED",
-            "chunks_indexed": len(embedded_chunks),
-            "total_chunks": self.index.ntotal,
+            "chunks_indexed": chunks_indexed,
         }
+
+    def search(
+        self,
+        query_embedding: list[float],
+        *,
+        limit: int = 5,
+        document_id: str | None = None,
+        score_threshold: float | None = None,
+    ) -> list[VectorSearchResult]:
+        """
+        Search Qdrant using a query embedding.
+        """
+
+        return self._vector_store.search(
+            query_embedding=query_embedding,
+            limit=limit,
+            document_id=document_id,
+            score_threshold=score_threshold,
+        )
 
     def similarity_search_by_vector(
         self,
-        query_vector,
+        query_vector: list[float],
         top_k: int = 5,
     ) -> list[dict]:
-        if self.index.ntotal == 0:
-            return []
+        """
+        Backward-compatible search method.
 
-        query_matrix = np.asarray(
-            [query_vector],
-            dtype=np.float32,
+        Existing code that still calls the old vector-search method
+        can continue working during the migration.
+        """
+
+        results = self.search(
+            query_embedding=query_vector,
+            limit=top_k,
         )
 
-        actual_top_k = min(top_k, self.index.ntotal)
+        return [
+            {
+                "point_id": result.point_id,
+                "document_id": result.document_id,
+                "chunk_id": result.chunk_id,
+                "text": result.text,
+                "score": result.score,
+                "metadata": result.metadata,
+            }
+            for result in results
+        ]
 
-        distances, indices = self.index.search(
-            query_matrix,
-            actual_top_k,
+    def delete_document(
+        self,
+        document_id: str,
+    ) -> None:
+        """
+        Delete all chunks belonging to a document.
+        """
+
+        self._vector_store.delete_document(
+            document_id
         )
 
-        results = []
+    def count_documents(self) -> int:
+        """
+        Return the number of stored vector points.
 
-        for distance, document_index in zip(
-            distances[0],
-            indices[0],
-        ):
-            if document_index == -1:
-                continue
+        This counts chunks, not unique uploaded documents.
+        """
 
-            document = self.documents[document_index]
+        return self._vector_store.count_points()
 
-            results.append(
-                {
-                    "chunk_id": document["chunk_id"],
-                    "content": document["content"],
-                    "document_id": document.get("document_id"),
-                    "filename": document.get("filename"),
-                    "score": float(distance),
-                }
-            )
+    def health_check(self) -> bool:
+        """
+        Check whether Qdrant is reachable and healthy.
+        """
 
-        return results
+        return self._vector_store.health_check()
