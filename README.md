@@ -1,432 +1,215 @@
 # Enterprise Agentic Intelligence Platform
 
-> **A production-inspired hierarchical multi-agent AI platform built with FastAPI, LangGraph, Qdrant Cloud, and Retrieval-Augmented Generation (RAG) to demonstrate enterprise-grade AI system architecture.**
+> A production-inspired multi-agent AI platform built with FastAPI, LangGraph, Groq, and Qdrant to demonstrate routing, retrieval, tool execution, and agent orchestration in a modular backend.
 
 ---
 
 ## Overview
 
-Modern enterprise AI applications require significantly more than calling a Large Language Model (LLM). They must intelligently route requests, retrieve relevant knowledge, coordinate specialized agents, execute business workflows, validate outputs, and remain scalable, observable, and maintainable.
+The Enterprise Agentic Intelligence Platform is a working example of an enterprise-style AI system that goes beyond a single prompt-response loop. It combines:
 
-The **Enterprise Agentic Intelligence Platform** is a production-inspired backend platform that demonstrates how these challenges can be addressed using a modular, hierarchical multi-agent architecture.
+- request routing across knowledge, reasoning, execution, and general branches
+- a hierarchical supervisor architecture with LangGraph
+- retrieval-augmented generation for document-based questions
+- tool selection and execution for calculator and web-search-style tasks
+- structured response composition with deterministic fallbacks
 
-Rather than building a single chatbot, this project focuses on designing an extensible AI platform capable of supporting enterprise use cases through specialized supervisors, retrieval pipelines, tool orchestration, and production-oriented engineering practices.
-
-The architecture emphasizes software engineering principles such as modularity, separation of concerns, explicit state management, dependency injection, and scalable service design.
-
----
-
-# Why This Project?
-
-Most AI tutorials demonstrate how to connect an LLM to a prompt.
-
-Real enterprise systems require much more:
-
-* How should requests be routed?
-* Which specialized agent should perform each task?
-* When should enterprise knowledge be retrieved?
-* How should multiple AI agents collaborate?
-* How should tools be selected and executed?
-* How can responses remain grounded in enterprise documents?
-* How can AI systems be evaluated, monitored, and improved over time?
-
-This project explores those engineering challenges by building an extensible AI platform rather than a simple conversational assistant.
+The implementation is organized around clear layers: API, business services, agents, graph state, tools, and infrastructure.
 
 ---
 
-# Project Objectives
+## What is implemented now
 
-The platform is designed around the following principles:
+### Multi-agent orchestration
 
-* Build production-inspired AI architecture
-* Demonstrate hierarchical multi-agent orchestration
-* Implement enterprise Retrieval-Augmented Generation (RAG)
-* Design reusable infrastructure services
-* Separate orchestration from business logic
-* Support future enterprise integrations
-* Enable safe, observable, and measurable AI systems
+- request router and master supervisor
+- specialized knowledge, reasoning, and execution supervisors
+- graph-based execution flow with explicit state transitions
+- agent usage tracking throughout the workflow
 
----
+### Knowledge workflow
 
-# Key Features
+- document upload and indexing flow
+- vector search integration with Qdrant
+- retrieval, document grading, citation generation, and answer composition
+- state-safe handling when retrieval data is missing
 
-### Multi-Agent Architecture
+### Execution workflow
 
-* Hierarchical supervisor model
-* Specialized knowledge, reasoning, and execution supervisors
-* Modular agent composition
-* LangGraph state-machine orchestration
+- tool registry with registered tools for:
+  - calculator
+  - web search
+  - generic fallback execution
+- tool selection and execution via dedicated agent nodes
+- response composition for successful and failed tool execution
 
----
+### General workflow
 
-### Enterprise RAG Pipeline
-
-* Document upload
-* Automatic parsing
-* Intelligent text chunking
-* Sentence Transformer embeddings
-* Qdrant Cloud vector database
-* Semantic retrieval
-* Citation generation
-* Context-aware response composition
+- general responder for simple direct questions and text transformations
+- LLM-backed general responses with fallback behavior if the model call fails
 
 ---
 
-### Production-Oriented Backend
-
-* FastAPI REST APIs
-* Dependency Injection
-* Layered architecture
-* Infrastructure abstraction
-* Business service layer
-* Configuration management
-* Modular project structure
-
----
-
-### Extensible Design
-
-The architecture has been intentionally designed so that new capabilities can be introduced with minimal changes to the existing codebase.
-
-Future extensions include:
-
-* Enterprise tools
-* Additional supervisors
-* New retrieval strategies
-* New LLM providers
-* Agent evaluations
-* Guardrails
-* Production observability
-
----
-
-# Architecture
-
-```text
-                                      Client
-                                         │
-                                         │
-                                FastAPI REST APIs
-                                         │
-                                         ▼
-                              Request Router Agent
-                                         │
-                                         ▼
-                               Master Supervisor
-                 ┌────────────────┼─────────────────┐
-                 │                │                 │
-                 ▼                ▼                 ▼
-      Knowledge Supervisor  Reasoning Supervisor  Execution Supervisor
-                 │                │                 │
-                 │                │                 │
-        ┌────────┼─────────┐      │         ┌───────┼────────┐
-        ▼        ▼         ▼      ▼         ▼       ▼        ▼
- Query Rewriter Cache   Retriever Planner Workflow Tool   Human
-                Checker           Critic Planner Selector Approval
-                    │             Reflection      │
-                    ▼             Verifier        ▼
-             Document Grader                 Tool Executor
-                    │
-                    ▼
-             Citation Agent
-                    │
-                    ▼
-           Response Composer
-                    │
-                    ▼
-              Final AI Response
-```
-
----
-
-# Technology Stack
-
-| Layer               | Technologies                |
-| ------------------- | --------------------------- |
-| Backend             | Python, FastAPI, Uvicorn    |
-| AI Framework        | LangGraph, LangChain        |
-| LLM Provider        | Groq                        |
-| Embeddings          | Sentence Transformers       |
-| Vector Database     | Qdrant Cloud                |
-| Document Processing | PDF, DOCX Parsing, Chunking |
-| Validation          | Pydantic                    |
-| Configuration       | pydantic-settings           |
-
----
-
-# High-Level Request Flow
-
-Every user request follows a structured execution pipeline.
+## Current architecture
 
 ```text
 Client
-    │
-    ▼
-FastAPI Endpoint
-    │
-Dependency Injection
-    │
-Request Router
-    │
-Master Supervisor
-    │
-Knowledge / Reasoning / Execution Supervisors
-    │
-Specialized Agents
-    │
-LLM Response
-    │
-REST API Response
-```
-
-Each stage is independently responsible for a specific concern, making the platform easier to maintain, extend, and test.
-
----
-
-# Enterprise RAG Pipeline
-
-The Retrieval-Augmented Generation pipeline transforms enterprise documents into searchable semantic knowledge.
-
-```text
-Upload Document
-        │
-        ▼
-Document Parsing
-        │
-        ▼
-Text Chunking
-        │
-        ▼
-Embedding Generation
-        │
-        ▼
-Qdrant Cloud
-        │
-        ▼
-Semantic Retrieval
-        │
-        ▼
-Document Grading
-        │
-        ▼
-Citation Generation
-        │
-        ▼
-Response Composition
+  │
+  ▼
+FastAPI endpoints
+  │
+  ▼
+AgentService / graph runner
+  │
+  ▼
+Request Router → Master Supervisor
+  │
+  ├── Knowledge Supervisor
+  │     └── Retriever / Grader / Citation / Composer
+  │
+  ├── Reasoning Supervisor
+  │     └── Planner / Critic / Reflection / Verifier
+  │
+  └── Execution Supervisor
+        └── Workflow Planner / Tool Selector / Tool Executor / Response Composer
 ```
 
 ---
 
-# Current Capabilities
+## Technology stack
 
-The platform currently supports:
-
-* Hierarchical LangGraph orchestration
-* Multi-supervisor architecture
-* FastAPI REST APIs
-* Document upload
-* Automatic document parsing
-* Intelligent text chunking
-* Embedding generation
-* Qdrant Cloud vector storage
-* Semantic search
-* Citation generation
-* Modular dependency injection
-* Layered architecture
-* Production-inspired project organization
+| Layer | Technologies |
+| --- | --- |
+| Backend | Python, FastAPI |
+| Orchestration | LangGraph |
+| LLM provider | Groq |
+| Embeddings | Sentence Transformers |
+| Vector database | Qdrant |
+| Validation | Pydantic |
+| Configuration | pydantic-settings |
 
 ---
 
-# Planned Enhancements
+## Quick start
 
-This platform is being developed incrementally toward a production-ready enterprise AI system.
+### 1. Install dependencies
 
-### Enterprise Tools
+```bash
+pip install -r requirements.txt
+```
 
-* Web Search Tool
-* SQL Database Tool
-* GitHub Repository Tool
-* REST API Tool
-* Workflow Automation Tool
+### 2. Configure environment variables
 
----
+Set the required environment values for Groq and Qdrant access, depending on your local setup.
 
-### Guardrails & AI Safety
+### 3. Run the API
 
-To support safe enterprise deployments, planned capabilities include:
+```bash
+uvicorn main:app --reload
+```
 
-* Prompt injection detection
-* Jailbreak detection
-* PII detection and masking
-* Input validation
-* Output validation
-* Hallucination detection
-* Citation verification
-* Policy enforcement
-* Human-in-the-loop approvals
-* Tool execution authorization
-* Confidence scoring
-* Enterprise safety policies
+The app will be available at:
+
+- http://localhost:8000/
+- http://localhost:8000/health
+- http://localhost:8000/agents/run
 
 ---
 
-### Evaluation Frameworks
+## API surface
 
-A major focus of the platform is measurable AI quality.
+### Agent execution
 
-Planned evaluation capabilities include:
+POST /agents/run
 
-#### Agent Evaluation Harness
+Example payload:
 
-* End-to-end workflow testing
-* Multi-agent regression testing
-* Golden dataset validation
-* Failure scenario simulation
-* Tool invocation verification
-* Performance benchmarking
+```json
+{
+  "question": "What is LangGraph?",
+  "agent_type": "master_supervisor"
+}
+```
 
-#### Model Evaluations
+Response:
 
-* Accuracy comparison
-* Cost analysis
-* Latency comparison
-* Hallucination measurement
-* Structured output quality
-* Planning effectiveness
-* Multi-model benchmarking (Groq, OpenAI, Anthropic, Gemini, open-source models)
+```json
+{
+  "run_id": "...",
+  "final_answer": "...",
+  "agents_used": ["request_router_llm", "master_supervisor", "..."]
+}
+```
 
-#### RAG Evaluations
+### Document workflow
 
-* Context precision
-* Context recall
-* Faithfulness
-* Answer relevancy
-* Retrieval quality
-* Citation accuracy
-* Groundedness
-* Embedding comparisons
-* Query rewriting effectiveness
+- POST /documents/upload
+- GET /documents
+- POST /documents/index
+- DELETE /documents/{document_id}
 
----
+### RAG and workflow endpoints
 
-### Observability
-
-The platform will incorporate comprehensive operational visibility.
-
-Planned features include:
-
-* LangSmith tracing
-* Execution graph visualization
-* Token usage analytics
-* Latency monitoring
-* Cost dashboards
-* Agent execution timelines
-* Prompt version tracking
-* Retrieval diagnostics
-* Supervisor routing analytics
-* Error monitoring
+- /rag/...
+- /workflow/...
+- /health/...
+- /metrics/...
+- /chat/...
 
 ---
 
-### Production Engineering
-
-Future production enhancements include:
-
-* Distributed caching
-* Retry policies
-* Circuit breakers
-* Queue-based execution
-* Workflow checkpointing
-* Rate limiting
-* Authentication & RBAC
-* Docker
-* Kubernetes
-* CI/CD pipelines
-* Horizontal scaling
-* Multi-tenant knowledge bases
-
----
-
-# Repository Structure
+## Repository structure
 
 ```text
 Enterprise-Agentic-Intelligence-Platform/
-│
 ├── app/
 │   ├── agents/
+│   │   ├── execution/
+│   │   ├── knowledge/
+│   │   └── reasoning/
 │   ├── api/
 │   ├── config/
 │   ├── core/
 │   ├── graph/
-│   ├── models/
 │   ├── schemas/
 │   ├── services/
 │   │   ├── business/
 │   │   └── infrastructure/
-│   └── main.py
-│
-├── tests/
+│   └── tools/
 ├── docs/
-├── requirements.txt
+├── tests/
+├── main.py
 ├── pyproject.toml
+├── requirements.txt
 └── README.md
 ```
 
 ---
 
-# Documentation
+## Testing
 
-Detailed documentation is available in the `docs/` directory.
+Run the unit tests with:
 
-| Document           | Description                                       |
-| ------------------ | ------------------------------------------------- |
-| `architecture.md`  | Complete system architecture and design decisions |
-| `supervisors.md`   | Knowledge, Reasoning, and Execution supervisors   |
-| `agents.md`        | Detailed explanation of every LangGraph node      |
-| `rag.md`           | Retrieval-Augmented Generation pipeline           |
-| `state-machine.md` | AgentState lifecycle and execution                |
-| `api.md`           | REST API documentation                            |
-| `evaluation.md`    | Agent, model, and RAG evaluation framework        |
-| `guardrails.md`    | AI safety architecture                            |
-| `observability.md` | Monitoring and LangSmith integration              |
-| `deployment.md`    | Docker, Kubernetes, and production deployment     |
+```bash
+pytest
+```
+
+The test suite covers tool execution, execution response composition, and Qdrant-related behaviors.
 
 ---
 
-# Design Philosophy
+## Recent updates
 
-The platform follows several core engineering principles:
+The project has recently been expanded to include:
 
-* Separation of Concerns
-* Single Responsibility Principle
-* Dependency Injection
-* Layered Architecture
-* Explicit State Management
-* Modular Agent Design
-* Production-Oriented Development
-* Extensibility by Design
-
-Every architectural decision is intended to make the platform easier to understand, extend, and evolve as new AI capabilities are introduced.
+- LLM-backed general responses for simple requests
+- calculator execution support in the tool workflow
+- generic fallback tool behavior for simple transformations
+- robust response composition fallbacks when LLM formatting fails
+- improved state handling for knowledge workflow steps that do not always receive retrieved documents
 
 ---
 
-# Learning Goals
+## Notes
 
-This project demonstrates practical engineering concepts involved in building enterprise AI systems, including:
-
-* Hierarchical Multi-Agent Systems
-* LangGraph Orchestration
-* Enterprise RAG
-* Vector Databases
-* Backend System Design
-* AI Infrastructure Engineering
-* Production API Development
-* Scalable Software Architecture
-* AI Evaluation Strategies
-* Safe AI Deployment Patterns
-
----
-
-# License
-
-This project is intended for educational, research, and portfolio purposes to demonstrate production-inspired AI engineering and enterprise software architecture.
+This repository is intended as an educational and portfolio-style implementation of an enterprise-inspired agent platform. It demonstrates how modular agents, workflow orchestration, retrieval pipelines, and tools can be combined into a coherent backend architecture.
