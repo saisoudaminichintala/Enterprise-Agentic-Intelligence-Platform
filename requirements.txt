@@ -12,3 +12,4 @@ sentence-transformers
 numpy
 qdrant-client
 pydantic-settings
+tavily-python

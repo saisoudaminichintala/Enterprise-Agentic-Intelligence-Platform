@@ -24,6 +24,7 @@ class AgentService:
             "citations": [],
             "plan": [],
             "retrieved_docs": [],
+            "retrieved_documents": [],
             "document_grade_reason": "",
             "final_answer": None,
             "agents_used": [],
@@ -36,9 +37,10 @@ class AgentService:
             "execution_plan": {},
             "approval_required": False,
             "approval_status": "NOT_REQUIRED",
-            "tool_result": "",
             "selected_tool": "",
             "tool_input": {},
+            "tool_selection_reason": "",
+            "tool_result": {},
         }   
         
 

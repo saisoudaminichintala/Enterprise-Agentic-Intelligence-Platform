@@ -15,9 +15,10 @@ def citation_node(state: AgentState):
     if state["cache_hit"]:
         citations = ["cached-answer-source"]
     else:
+        documents = state.get("retrieved_docs") or state.get("retrieved_documents") or []
         citations = [
             f"source-{index + 1}"
-            for index, _ in enumerate(state["retrieved_docs"])
+            for index, _ in enumerate(documents)
         ]
 
     return {

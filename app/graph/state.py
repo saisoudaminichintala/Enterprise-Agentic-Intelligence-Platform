@@ -1,44 +1,48 @@
-from typing import TypedDict, List, Optional, Dict, Any
+from typing import Any, TypedDict
 
 
-class AgentState(TypedDict):
+class AgentState(TypedDict, total=False):
+    # Core request and routing
     question: str
 
-    route: Optional[str]
+    route: str
     router_confidence: float
     router_reason: str
 
-    selected_supervisor: Optional[str]
-    execution_strategy: Optional[str]
+    selected_supervisor: str
+    agents_used: list[str]
 
-    knowledge_strategy: Optional[str]
-    reasoning_strategy: Optional[str]
-    workflow_strategy: Optional[str]
-
-    knowledge_execution_plan: Dict[str, Any]
-
-    rewritten_query: Optional[str]
-    query_rewrite_reason: str
-
+    # Knowledge branch
+    knowledge_execution_plan: dict[str, Any]
+    rewritten_query: str
     cache_hit: bool
-    citations: List[str]
+    retrieved_documents: list[dict[str, Any]]
+    graded_documents: list[dict[str, Any]]
+    citations: list[dict[str, Any]]
+    knowledge_answer: str
 
-    document_grade_reason: str
-
-    plan: List[str]
-    retrieved_docs: List[str]
-    final_answer: Optional[str]
-    agents_used: List[str]
-    reasoning_execution_plan: dict
+    # Reasoning branch
     reasoning_draft: str
-    critic_feedback: str
-    reflection_notes: str
     verification_result: str
 
-    execution_plan: dict
+    # Execution branch
+    workflow_strategy: str
+    execution_plan: dict[str, Any]
     approval_required: bool
-    approval_status: str
-    tool_result: str
+    human_approved: bool
 
     selected_tool: str
-    tool_input: dict
+    tool_selection_reason: str
+    tool_input: dict[str, Any]
+    tool_result: dict[str, Any]
+
+    execution_answer: str
+    execution_sources: list[dict[str, Any]]
+    execution_summary: str
+    execution_composer_error: str
+
+    # General branch
+    general_response: str
+
+    # Final output
+    final_answer: str

@@ -2,7 +2,13 @@ import json
 from groq import Groq
 
 from app.config.settings import settings
+from pydantic import BaseModel, ValidationError
+from typing import TypeVar
+import json
 
+from app.schemas.execution_response_schema import ExecutionResponse
+
+T = TypeVar("T", bound=BaseModel)
 
 class LLMService:
     """
@@ -32,66 +38,87 @@ class LLMService:
        
     def classify_route(self, question: str) -> dict:
         system_prompt = """
-You are a request routing agent for an enterprise multi-agent AI platform.
+        You are the request router for an enterprise multi-agent AI platform.
 
-Classify the user request into exactly one route:
+        Classify the user's request into exactly one route:
 
-knowledge:
-- document questions
-- PDF questions
-- RAG
-- search uploaded files
-- asking based on stored knowledge
+        knowledge:
+        Use when the answer must come from uploaded documents, indexed knowledge,
+        retrieval, or document citations.
 
-reasoning:
-- analyze
-- compare
-- decide
-- design
-- plan
-- architecture tradeoffs
-- multi-step thinking
+        reasoning:
+        Use when the request requires deeper analysis, comparison, planning,
+        criticism, reflection, or verification.
 
-execution:
-- create something externally
-- send something
-- approve something
-- execute workflow
-- call tools/APIs
+        execution:
+        Use only when the request requires an external or deterministic tool,
+        such as:
+        - web search
+        - calculator
+        - SQL query
+        - GitHub operation
+        - API call
+        - file operation
+        - workflow execution
+        - external system action
 
-general:
-- simple greetings
-- simple questions
-- general conversation
+        general:
+        Use for:
+        - greetings
+        - direct questions
+        - rewriting
+        - summarization
+        - translation
+        - formatting
+        - tone changes
+        - text transformations
+        - simple explanations that do not require retrieval or tools
 
-Return only valid JSON with this exact structure:
-{
-  "route": "knowledge | reasoning | execution | general",
-  "confidence": 0.0,
-  "reason": "short explanation"
+        Examples:
+        - "What does the uploaded document say about RAG?" -> knowledge
+        - "Compare RAG and fine-tuning." -> reasoning
+        - "Calculate 1250 divided by 25." -> execution
+        - "Search the web for the latest LangGraph release." -> execution
+        - "Convert this text to uppercase." -> general
+        - "Rewrite this professionally." -> general
+        - "Hello." -> general
+
+        Return valid JSON only:
+
+        {
+        "route": "knowledge | reasoning | execution | general",
+        "confidence": 0.0,
+        "reason": "short explanation"
 }
 """
 
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": question},
+                {
+                    "role": "system",
+                    "content": system_prompt,
+                },
+                {
+                    "role": "user",
+                    "content": question,
+                },
             ],
-            temperature=0.1,
+            temperature=0,
             response_format={"type": "json_object"},
         )
 
         content = response.choices[0].message.content
 
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError:
+        if not content:
             return {
                 "route": "general",
                 "confidence": 0.0,
-                "reason": "LLM returned invalid JSON. Falling back to general route."
+                "reason": "The router returned an empty response.",
             }
+
+        import json
+        return json.loads(content)
     def rewrite_query(self, question: str) -> dict:
         system_prompt = """
     You are a query rewriting agent for an enterprise RAG system.
@@ -170,6 +197,30 @@ Return only valid JSON with this exact structure:
                     "relevant_documents": documents,
                     "reason": "LLM returned invalid JSON. Falling back to all documents."
                 }
+
+    def generate_general_response(self, question: str) -> str:
+        system_prompt = """
+    You are a helpful assistant for an enterprise agent platform.
+
+    Respond directly to the user's request.
+    Keep the answer concise, clear, and natural.
+    Do not use tools or mention internal implementation details.
+    """
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question},
+            ],
+            temperature=0.2,
+        )
+
+        content = response.choices[0].message.content
+        if content:
+            return content.strip()
+
+        return "I can help with that."
 
     def create_knowledge_execution_plan(self, question: str) -> dict:
         system_prompt = """
@@ -459,3 +510,102 @@ Return only valid JSON with this exact structure:
         )
 
         return json.loads(response.choices[0].message.content)
+
+    def generate_structured(
+        self,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        response_model: type[T],
+        ) -> T:
+            """
+            Generates a JSON response and validates it against a Pydantic model.
+            """
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": system_prompt,
+                    },
+                    {
+                        "role": "user",
+                        "content": user_prompt,
+                    },
+                ],
+                temperature=0,
+                response_format={"type": "json_object"},
+            )
+
+            content = response.choices[0].message.content
+
+            if not content:
+                raise ValueError("The LLM returned an empty response.")
+
+            try:
+                parsed_content = json.loads(content)
+                return response_model.model_validate(parsed_content)
+
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"The LLM returned invalid JSON: {content}"
+                ) from exc
+
+            except ValidationError as exc:
+                raise ValueError(
+                    f"The LLM response did not match the expected schema: {content}"
+                ) from exc
+
+    def compose_execution_response(
+        self,
+        *,
+        question: str,
+        selected_tool: str,
+        tool_result: dict,
+    ) -> ExecutionResponse:
+        """
+        Converts a raw tool result into a normalized user-facing response.
+
+        The LLM must use only the supplied tool output and must not invent
+        missing facts or sources.
+        """
+
+        system_prompt = """
+    You are the Execution Response Composer in an enterprise multi-agent system.
+
+    Your responsibility is to convert raw tool output into a clear,
+    accurate, user-facing response.
+
+    Rules:
+
+    1. Answer the user's original question.
+    2. Use only information contained in the tool result.
+    3. Do not invent facts, links, sources, calculations, or execution results.
+    4. Clearly state when the tool failed or returned incomplete information.
+    5. Preserve important numerical values exactly.
+    6. For web-search results, include useful source titles and URLs.
+    7. For calculator results, explain the calculation clearly.
+    8. For operational tools, summarize what was executed and the result.
+    9. Do not expose internal implementation details unless the user asked.
+    10. Return output matching the required JSON schema.
+
+    The answer must be ready to show directly to the user.
+    """
+
+        user_prompt = f"""
+    Original user question:
+    {question}
+
+    Selected tool:
+    {selected_tool}
+
+    Raw tool result:
+    {json.dumps(tool_result, indent=2, default=str)}
+    """
+
+        return self.generate_structured(
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            response_model=ExecutionResponse,
+        )

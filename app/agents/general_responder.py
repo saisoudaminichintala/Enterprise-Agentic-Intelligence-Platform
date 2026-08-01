@@ -1,8 +1,34 @@
 from app.graph.state import AgentState
+from app.services.infrastructure.llm_service import LLMService
 
 
-def general_responder_node(state: AgentState):
+llm_service = LLMService()
+
+
+def general_responder_node(state: AgentState) -> dict:
+    """
+    Handles simple requests that do not require retrieval,
+    complex reasoning, or external tools.
+    """
+
+    question = state.get("question", "").strip()
+    agents_used = state.get("agents_used", [])
+
+    if not question:
+        return {
+            "general_response": "Please provide a request.",
+            "agents_used": agents_used + ["general_responder"],
+        }
+
+    try:
+        answer = llm_service.generate_general_response(question)
+    except Exception:
+        answer = (
+            "I can help with simple text transformations, direct questions, "
+            "summaries, or rewrites."
+        )
+
     return {
-        "final_answer": f"General response for: {state['question']}",
-        "agents_used": state["agents_used"] + ["general_responder"]
+        "general_response": answer,
+        "agents_used": agents_used + ["general_responder_llm"],
     }

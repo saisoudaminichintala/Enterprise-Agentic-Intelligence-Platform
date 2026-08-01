@@ -1,39 +1,30 @@
 from app.graph.state import AgentState
 
 
-def master_supervisor_node(state: AgentState):
-    """
-    Master Supervisor validates router classification and decides
-    which domain supervisor should own the request.
+from app.graph.state import AgentState
 
-    Router answers:
-        What type of request is this?
 
-    Master Supervisor answers:
-        Which supervisor should handle it?
-        What strategy should we follow?
-    """
+ROUTE_TO_SUPERVISOR = {
+    "knowledge": "knowledge_supervisor",
+    "reasoning": "reasoning_supervisor",
+    "execution": "execution_supervisor",
+    "general": "general_responder",
+}
 
-    route = state["route"]
 
-    if route == "knowledge":
-        selected_supervisor = "knowledge_supervisor"
-        strategy = "retrieve_grade_answer"
+def master_supervisor_node(state: AgentState) -> dict:
+    route = state.get("route", "general")
 
-    elif route == "reasoning":
-        selected_supervisor = "reasoning_supervisor"
-        strategy = "plan_critique_reflect"
+    selected_supervisor = ROUTE_TO_SUPERVISOR.get(
+        route,
+        "general_responder",
+    )
 
-    elif route == "execution":
-        selected_supervisor = "execution_supervisor"
-        strategy = "plan_approve_execute"
-
-    else:
-        selected_supervisor = "general_responder"
-        strategy = "direct_response"
+    print("MASTER RECEIVED ROUTE:", repr(route))
+    print("MASTER SELECTED:", selected_supervisor)
 
     return {
         "selected_supervisor": selected_supervisor,
-        "execution_strategy": strategy,
-        "agents_used": state["agents_used"] + ["master_supervisor"]
+        "agents_used": state.get("agents_used", [])
+        + ["master_supervisor"],
     }

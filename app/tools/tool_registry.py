@@ -1,6 +1,8 @@
 from app.tools.base_tool import BaseTool
 from app.tools.calculator_tool import CalculatorTool
 from app.tools.generic_tool import GenericTool
+from app.tools.web_search_tool import WebSearchTool
+
 
 
 class ToolRegistry:
@@ -17,6 +19,7 @@ class ToolRegistry:
         self.tools: dict[str, BaseTool] = {}
 
         self.register(CalculatorTool())
+        self.register(WebSearchTool())
         self.register(GenericTool())
 
     def register(self, tool: BaseTool):
@@ -29,7 +32,7 @@ class ToolRegistry:
         return [
             {
                 "name": tool.name,
-                "description": tool.description
+                "description": tool.description,
             }
             for tool in self.tools.values()
         ]

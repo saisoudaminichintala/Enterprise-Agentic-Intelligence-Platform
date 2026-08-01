@@ -1,38 +1,73 @@
 from app.graph.state import AgentState
 from app.services.infrastructure.llm_service import LLMService
 
+
 llm_service = LLMService()
 
 
-def response_composer_node(state: AgentState):
-    route = state["route"]
+def response_composer_node(state: AgentState) -> dict:
+    """
+    Produces the final response from the normalized output of the
+    supervisor branch selected for the request.
+
+    The execution branch consumes execution_answer produced by the
+    execution_response_composer node instead of interpreting raw
+    tool output directly.
+    """
+
+    route = state.get("route", "general")
+    agents_used = state.get("agents_used", [])
 
     if route == "knowledge":
         result = llm_service.compose_knowledge_answer(
-            question=state["question"],
-            retrieved_docs=state["retrieved_docs"],
-            citations=state["citations"],
+            question=state.get("question", ""),
+            retrieved_docs=state.get("retrieved_docs", []),
+            citations=state.get("citations", []),
         )
 
-        answer = result.get("answer", "No answer generated.")
+        answer = result.get(
+            "answer",
+            "The knowledge workflow did not generate an answer.",
+        )
+
+        composer_agent = "response_composer_llm"
 
     elif route == "execution":
-        answer = (
-            f"Execution plan: {state['execution_plan']}\n\n"
-            f"Approval status: {state['approval_status']}\n\n"
-            f"Tool result: {state['tool_result']}"
+        answer = state.get(
+            "execution_answer",
+            "The execution workflow did not generate an answer.",
         )
+
+        composer_agent = "response_composer"
 
     elif route == "reasoning":
-        answer = (
-            f"{state['reasoning_draft']}\n\n"
-            f"Verification: {state['verification_result']}"
+        reasoning_draft = state.get(
+            "reasoning_draft",
+            "The reasoning workflow did not generate an answer.",
         )
 
+        verification_result = state.get(
+            "verification_result",
+            "not_verified",
+        )
+
+        answer = (
+            f"{reasoning_draft}\n\n"
+            f"Verification: {verification_result}"
+        )
+
+        composer_agent = "response_composer"
+
     else:
-        answer = state["final_answer"] or f"General response for: {state['question']}"
+        answer = (
+            state.get("final_answer")
+            or state.get("general_response")
+            or f"General response for: {state.get('question', '')}"
+        )
+
+        composer_agent = "response_composer"
 
     return {
         "final_answer": answer,
-        "agents_used": state["agents_used"] + ["response_composer_llm" if route == "knowledge" else "response_composer"],
+        "agents_used": agents_used + [composer_agent],
     }

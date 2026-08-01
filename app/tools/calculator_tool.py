@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 from app.tools.base_tool import BaseTool
 
 
@@ -6,8 +6,21 @@ class CalculatorTool(BaseTool):
     name = "calculator"
     description = "Performs simple arithmetic calculations."
 
-    def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        expression = input_data.get("expression", "")
+    def execute(self, **kwargs: Any) -> dict[str, Any]:
+        input_data = kwargs.get("input_data", {})
+        if isinstance(input_data, dict):
+            expression = input_data.get("expression", input_data.get("calculation", ""))
+        else:
+            expression = ""
+
+        expression = str(kwargs.get("expression", kwargs.get("calculation", expression))).strip()
+
+        if not expression:
+            return {
+                "tool": self.name,
+                "status": "FAILED",
+                "error": "Expression is required."
+            }
 
         try:
             result = eval(expression, {"__builtins__": {}}, {})

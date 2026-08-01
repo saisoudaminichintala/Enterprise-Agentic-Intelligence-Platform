@@ -8,7 +8,7 @@ llm_service = LLMService()
 def document_grader_node(
     state: AgentState,
 ) -> dict:
-    original_documents = state["retrieved_docs"]
+    original_documents = state.get("retrieved_docs") or state.get("retrieved_documents") or []
 
     print(
         "Documents before grading:",

@@ -1,20 +1,32 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 
 class BaseTool(ABC):
     """
-    Base class for all tools.
+    Common contract implemented by every platform tool.
 
-    Every tool should follow the same contract:
-    - name
-    - description
-    - execute()
+    Each tool exposes identifying metadata and a single execution method.
     """
 
-    name: str
-    description: str
+    @property
+    @abstractmethod
+    def name(self) -> str:
+        """Unique name used by the tool registry and selector."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def description(self) -> str:
+        """Human-readable description used during tool selection."""
+        raise NotImplementedError
 
     @abstractmethod
-    def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        pass
+    def execute(self, **kwargs: Any) -> dict[str, Any]:
+        """
+        Execute the tool and return a structured result.
+
+        Tools should return dictionaries rather than raw SDK responses so the
+        rest of the application remains independent of the provider.
+        """
+        raise NotImplementedError

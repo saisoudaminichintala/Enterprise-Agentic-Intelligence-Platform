@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     groq_api_key: SecretStr | None = None
     groq_model: str = "llama-3.3-70b-versatile"
 
+    # ---------- Tavily ----------
+    tavily_api_key: SecretStr
+
     # ---------- Qdrant ----------
     qdrant_url: str
     qdrant_api_key: SecretStr

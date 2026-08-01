@@ -1,28 +1,34 @@
+from typing import Any
+
 from app.graph.state import AgentState
+from app.tools.tool_registry import ToolRegistry
 
 
-def tool_executor_node(state: AgentState):
+tool_registry = ToolRegistry()
+
+
+def tool_executor_node(state: AgentState) -> dict[str, Any]:
     """
-    Simulated tool executor.
-
-    Later:
-    - call Jira API
-    - send email
-    - update DB
-    - call GitHub API
-
-    For now:
-    - if approval is required, do not execute
-    - otherwise simulate execution
+    Retrieves the selected tool from the registry and executes it.
     """
 
-    if state["approval_status"] == "WAITING_FOR_HUMAN_APPROVAL":
-        result = "Tool execution paused. Waiting for human approval."
-    else:
-        tool = state["execution_plan"].get("tool_needed", "generic_tool")
-        result = f"Simulated execution completed using tool: {tool}"
+    selected_tool = state.get("selected_tool", "generic_tool")
+    tool_input = state.get("tool_input", {})
+    agents_used = state.get("agents_used", [])
+
+    tool = tool_registry.get_tool(selected_tool)
+
+    try:
+        result = tool.execute(**tool_input)
+
+    except Exception as exc:
+        result = {
+            "success": False,
+            "tool": selected_tool,
+            "error": str(exc),
+        }
 
     return {
         "tool_result": result,
-        "agents_used": state["agents_used"] + ["tool_executor_agent"],
+        "agents_used": agents_used + ["tool_executor_agent"],
     }
